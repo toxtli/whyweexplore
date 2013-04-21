@@ -64,10 +64,24 @@
 				});
 				j++;
 			}
-			onEnd();
+			markerCluster = new MarkerClusterer(map, marker);
 		});
-		$.getJSON('http://gdata.youtube.com/feeds/api/videos?alt=json&q=whyweexplore', function(data){
+		searchByWords('whyweexplore');
+	  });
+	  
+	  var currentIndex = 1;
+	  var increment = 50;
+	  var totalResults = 0;
+	  var stop = true;
+	  var currentQuery = '';
+	  
+	  function searchByWords(q)
+	  {
+		currentQuery = q = q.replace(' ','+');
+		$.getJSON('http://gdata.youtube.com/feeds/api/videos?alt=json&max-results=50&start-index='+currentIndex+'&q='+q, function(data){
+			totalResults = parseInt(data["feed"]["openSearch$totalResults"]["$t"]);
 			data = data.feed.entry;
+			stop = false;
 			for(i in data)
 			{
 				if(typeof data[i]["georss$where"] != 'undefined')
@@ -97,14 +111,38 @@
 					}
 				}
 			}
-			onEnd();
+			markerCluster = new MarkerClusterer(map, marker);
+			currentIndex+=increment;
+			if(currentIndex<totalResults && !stop)
+			{
+				searchByWords(currentQuery);
+			}
 		});
-	  });
+	  }
+	  
+	  function removeMarkers()
+	  {
+		stop = true;
+		currentIndex = 1;
+		totalResults = 0;
+        for (var i = 0; i < marker.length; i++) 
+		{
+          marker[i].setMap(null);
+        }
+		marker = [];
+		j = 0;
+      }
+	  
+	  function searchGlobaly(value)
+	  {
+		removeMarkers();
+		searchByWords(value);
+	  }
 	  
 	  function onEnd()
 	  {
 		threads++;
-		if(threads==maxThreads)
+		if(threads>=maxThreads)
 		{
 			markerCluster = new MarkerClusterer(map, marker);
 		}
